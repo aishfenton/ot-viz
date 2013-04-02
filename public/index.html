@@ -1,0 +1,82 @@
+<!DOCTYPE HTML>
+<html lang="en">
+  <head>
+    <title>WebGL Globe</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="/css/main.css">
+
+    <script type="text/javascript" src="/js/vendor/jquery-1.9.1.js"></script>
+    <script type="text/javascript" src="/js/vendor/detector.js"></script>
+    <script type="text/javascript" src="/js/vendor/three.js"></script>
+    <script type="text/javascript" src="/js/vendor/tween.js"></script>
+    <script type="text/javascript" src="/js/vendor/sugar.js"></script>
+    <script type="text/javascript" src="/js/namespaces.js"></script>
+    <script type="text/javascript" src="/js/main.js"></script>
+    <script type="text/javascript" src="/js/globe.js"></script>
+    
+    <script id="fragmentShader" type="x-shader/x-fragment">
+      uniform sampler2D dayTexture;
+      uniform sampler2D nightTexture;
+      uniform vec3 sunDirection;
+
+      varying vec2 vUv;
+      varying vec3 vNormal;
+
+      void main( void ) {
+        vec3 dayColor = texture2D( dayTexture, vUv ).rgb;
+        vec3 nightColor = texture2D( nightTexture, vUv ).rgb;
+        // compute cosine sun to normal so -1 is away from sun and +1 is toward sun.
+        float cosineAngleSunToNormal = dot(normalize(vNormal), sunDirection);
+
+        // sharpen the edge beween the transition
+        cosineAngleSunToNormal = clamp( cosineAngleSunToNormal * 10.0, -1.0, 1.0);
+
+        // convert to 0 to 1 for mixing
+        float mixAmount = cosineAngleSunToNormal * 0.5 + 0.5;
+
+        // Select day or night texture based on mix.
+        vec3 color = mix( nightColor, dayColor, mixAmount );
+
+        gl_FragColor = vec4( color, 1.0 );
+      }
+    </script>
+
+    <script id="vertexShader" type="x-shader/x-vertex">
+      varying vec2 vUv;
+      varying vec3 vNormal;
+
+      void main() {
+        vUv = uv;
+        vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+              vNormal = normalMatrix * normal;
+        gl_Position = projectionMatrix * mvPosition;
+      }
+    </script>
+    
+    <script type="text/javascript"> 
+
+      if (!Detector.webgl) {
+        Detector.addGetWebGLMessage();
+      } else {
+        OT.pages.main();
+      }
+
+    </script>
+
+  </head>
+  <body>
+
+  <div id="container"></div>
+
+  <div id="title">
+    Real-time reservations 
+  </div>
+
+  <div id="info">
+    <strong><a href="http://opentable.com">OpenTable</a>
+  </div>
+
+  </body>
+
+</html>
+
