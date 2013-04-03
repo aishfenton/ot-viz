@@ -11,7 +11,8 @@ OT.components.globe = function(container) {
   var mouseX = 0, mouseY = 0,
       lat = 0, lon = 0, phy = 0, theta = 0;
 
-  var pointSize = 0.005,
+  var points = {},
+      pointSize = 0.005,
       pointLength = 0.5;
 
   var halfX = $container.width() / 2,
@@ -19,7 +20,7 @@ OT.components.globe = function(container) {
 
   var phi = 0, theta = 0, radius = 1;
     
-  var distance = 4,
+  var distance = 3,
       cameraHeight = 1;
 
   function colorFn(x) {
@@ -37,14 +38,14 @@ OT.components.globe = function(container) {
 
     scene.add( camera );
 
-    directionalLight = new THREE.DirectionalLight( 0xaaff33, 0 );
-    directionalLight.position.set( 1, 0, 0 ).normalize();
+    //directionalLight = new THREE.DirectionalLight( 0xaaff33, 0 );
+    //directionalLight.position.set( 1, 0, 0 ).normalize();
     //scene.add( directionalLight );
 
     startTime = Date.now();
 
     uniforms = {
-      sunDirection: { type: "v3", value: new THREE.Vector3(1, 0.5, 0) },
+      sunDirection: { type: "v3", value: new THREE.Vector3(-1, 0.5, 0) },
       dayTexture: { type: "t", value: 0, texture: THREE.ImageUtils.loadTexture( "/img/earth-day-large.jpg" ) },
       nightTexture: { type: "t", value: 1, texture: THREE.ImageUtils.loadTexture( "/img/earth-night-large.jpg" ) }
     };
@@ -59,10 +60,8 @@ OT.components.globe = function(container) {
       fragmentShader: document.getElementById( 'fragmentShader' ).textContent
     });
 
-    mesh = new THREE.Mesh( new THREE.SphereGeometry( radius, 32, 16 ), material );
+    mesh = new THREE.Mesh( new THREE.SphereGeometry( radius, 64, 32 ), material );
     scene.add(mesh);
-
-    //meshes.push(mesh);
 
     renderer = new THREE.WebGLRenderer();
     $container.append(renderer.domElement);
@@ -71,22 +70,47 @@ OT.components.globe = function(container) {
   }
 
   function animate() {
-    requestAnimationFrame( animate );
+    requestAnimationFrame( animate ); 
     render();
+  }
+  
+  function setMagnitude(mesh, magnitude) {
+    if (magnitude <= 0)
+      throw "magnitude must be > 0";
+
+    mesh.morphTargetInfluences[0] = magnitude;
+    //mesh.scale.y = magnitude;
+
+    for (var i = 0; i < mesh.geometry.faces.length; i++) {
+      mesh.geometry.faces[i].color = colorFn(magnitude);
+    }
+    mesh.geometry.colorsNeedUpdate = true;        
   }
 
   function buildPoint(phi, theta, magnitude) {
-    var length = magnitude * pointLength;
-    var geo = new THREE.CubeGeometry(pointSize, length, pointSize);
-    geo.applyMatrix( new THREE.Matrix4().translate( new THREE.Vector3(0, length/2, 0)));    
-    geo.applyMatrix( new THREE.Matrix4().rotateZ( - theta ));    
-    geo.applyMatrix( new THREE.Matrix4().rotateY( - phi ));    
-
-    var mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: THREE.FaceColors }) );
-    
-    for (var i = 0; i < geo.faces.length; i++) {
-      geo.faces[i].color = colorFn(magnitude);
+    //var length =  magnitude * pointLength;
+    var geo = new THREE.CubeGeometry(pointSize, 0.01, pointSize);
+    geo.applyMatrix( new THREE.Matrix4().translate(new THREE.Vector3(0, 0.01/2, 0)));    
+    //geo.applyMatrix( new THREE.Matrix4().rotateZ( - theta )); 
+    //geo.applyMatrix( new THREE.Matrix4().rotateY( - phi ));    
+  
+    vertices = [];  
+    for ( var v = 0; v < geo.vertices.length; v++ ) {
+      vertices.push( geo.vertices[v].clone() );
     }
+    vertices[0].y += pointLength;
+    vertices[1].y += pointLength;
+    vertices[4].y += pointLength;
+    vertices[5].y += pointLength;
+    geo.morphTargets.push( { name: "full-length", vertices: vertices }); 
+
+    var mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: THREE.FaceColors, morphTargets: true }) );
+    mesh.rotation.z = -theta;
+    mesh.rotation.y = -phi;
+    //geo.applyMatrix( new THREE.Matrix4().rotateZ( - theta )); 
+    //geo.applyMatrix( new THREE.Matrix4().rotateY( - phi ));    
+    
+    setMagnitude(mesh, magnitude);
   
     var v = PTToVertex(phi, theta, radius);
     mesh.position.x = v.x;
@@ -94,13 +118,25 @@ OT.components.globe = function(container) {
     mesh.position.z = v.z;
 
     scene.add(mesh);
+    return mesh;
   }
 
-  function addPoint(lng, lat, magnitude) {
+  function addPoint(id, lng, lat, magnitude) {
     var coord = lngLatToPT(lng, lat);
-    buildPoint(coord[0], coord[1], magnitude);
-  }  
+    mesh = buildPoint(coord[0], coord[1], magnitude);
+    points[id] = mesh;
+  }
 
+  function removePoint(id) {
+    var mesh = points[id]; 
+    scene.remove(mesh);
+  }
+
+  function updatePoint(id, magnitude) {
+    var mesh = points[id];
+    setMagnitude(mesh, magnitude);
+  }
+  
   function lngLatToPT(lng, lat) {
     var phi = -lng * Math.PI / 180; 
     var theta = (90 - lat) * Math.PI / 180;
@@ -117,36 +153,26 @@ OT.components.globe = function(container) {
   window.PTToVertex = PTToVertex;
 
   function resize() {
-    renderer.setSize($container.width(), $container.height());
+    renderer.setSize(window.innerWidth, window.innerHeight);    
+    //renderer.setSize($container.width(), $container.height());
   }
 
-  function zoom(d) { 
+  function zoom(d) {
     distance = d;
   }
 
   function render() {
-    phi += 0.01
+    phi -= 0.01
     camera.position.x = Math.sin(phi) * Math.cos(theta) * distance
     camera.position.y = Math.sin(theta) * distance + cameraHeight;
     camera.position.z = Math.cos(phi) * Math.cos(theta) * distance
-
+    
     camera.lookAt(new THREE.Vector3(0,0,0));
  
     //var t = Date.now() * 0.001;
     //uniforms.sunDirection.value.x = Math.sin(t);
     //uniforms.sunDirection.value.y = Math.cos(t);
-
-    // Note: Since the earth is at 0,0,0 you can set the normal for the sun
-    // with
-    //
-    //uniforms.sunDirection.value.copy(sunPosition);
-    //uniforms.sunDirection.value.normalize();
-
-    //for( var i = 0; i < meshes.length; ++ i ) {
-      //meshes[ i ].rotation.y += 0.01 * ( i % 2 ? 1 : -1 );
-      //meshes[ i ].rotation.x += 0.01 * ( i % 2 ? -1 : 1 );
-    //}
-    
+ 
     renderer.render( scene, camera );
   }
  
@@ -154,7 +180,8 @@ OT.components.globe = function(container) {
   animate();
 
   globe.addPoint = addPoint;
-  globe.buildPoint = buildPoint;
+  globe.removePoint = removePoint;
+  globe.updatePoint = updatePoint;
 
   globe.zoom = function(_) {
     if (!arguments.length) return distance;
@@ -168,7 +195,5 @@ OT.components.globe = function(container) {
     return globe;
   };
 
-  
   return globe;
-
 }

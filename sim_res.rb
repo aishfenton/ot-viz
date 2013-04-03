@@ -19,7 +19,7 @@ class SimRes
         :no_of_res => Micro::Parameter.new do |p|
           x = rand
           p.start_value = [0.01, Math::E**(100*x - 100)].max
-          p.change_func = lambda { |value| rand / 2 }
+          p.change_func = lambda { |value| rand * 10 }
         end,
 
         :lat_lng => Micro::Parameter.new do |p|
@@ -45,9 +45,10 @@ class SimRes
   private
 
   def as_json(*)
-    @world.agents.map do |a|
-      { lat:  a[:lat_lng][0], lng: a[:lat_lng][1], no_of_res: a[:no_of_res] }
+    r = @world.agents.map do |a|
+      { latitude:  a[:lat_lng][0], longitude: a[:lat_lng][1], partysize: a[:no_of_res] }
     end
+    { reservations: r }
   end
 
 end
