@@ -70,7 +70,7 @@ OT.pages.main = function(_export) {
   function clusterData(data) {
     var clusters = {}
     data.forEach(function(d) {
-      gridId = geoHash(d.latitude, d.longitude).substring(0,3);
+      gridId = geoHash(d.latitude, d.longitude).substring(0,4);
       if (clusters[gridId]) {
         clusters[gridId].magnitude += 1; 
       } else {
@@ -86,7 +86,7 @@ OT.pages.main = function(_export) {
     if (!e)
       return;
 
-    $('#ticker').append("<div id=" + e.resid + "><span>" + e.partysize + "</span> at " + e.restaurantname + "</div>"); 
+    $('#ticker').append("<div id=" + e.resid + "><span>" + e.partysize + "</span> for " + e.restaurantname + "</div>"); 
   }
 
   function loadRes(region) {
@@ -97,20 +97,30 @@ OT.pages.main = function(_export) {
         })
 
       var pointUpdates = clusterData(reses.entered());
-      
-      var maxMag = 70; //Object.values(points).max('magnitude') || 10;
-
       pointUpdates.forEach(function(d) { 
         if (d.gridId in points) {
           points[d.gridId].magnitude += d.magnitude;
-          globe.updatePoint(d.gridId, points[d.gridId].magnitude / maxMag);
         } else {
           points[d.gridId] = d;
-          globe.addPoint(d.gridId, d.lng, d.lat, d.magnitude / maxMag); 
         }
       });
+  
+      updateGlobe(points);
  
     });
+  }
+
+  function updateGlobe(points) {
+    var pointArray = Object.values(points);
+    var maxMag = pointArray.max('magnitude').magnitude;
+debugger;
+    pointArray.forEach(function(d) { 
+      if (globe.getPoint(d.gridId)) {
+        globe.updatePoint(d.gridId, d.magnitude / maxMag);
+      } else {
+        globe.addPoint(d.gridId, d.lng, d.lat, d.magnitude / maxMag); 
+      }
+    });    
   }
 
   function onWindowResize( event ) {

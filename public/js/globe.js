@@ -38,10 +38,6 @@ OT.components.globe = function(container) {
 
     scene.add( camera );
 
-    //directionalLight = new THREE.DirectionalLight( 0xaaff33, 0 );
-    //directionalLight.position.set( 1, 0, 0 ).normalize();
-    //scene.add( directionalLight );
-
     startTime = Date.now();
 
     uniforms = {
@@ -79,7 +75,6 @@ OT.components.globe = function(container) {
       throw "magnitude must be > 0";
 
     mesh.morphTargetInfluences[0] = magnitude;
-    //mesh.scale.y = magnitude;
 
     for (var i = 0; i < mesh.geometry.faces.length; i++) {
       mesh.geometry.faces[i].color = colorFn(magnitude);
@@ -91,6 +86,8 @@ OT.components.globe = function(container) {
     //var length =  magnitude * pointLength;
     var geo = new THREE.CubeGeometry(pointSize, 0.01, pointSize);
     geo.applyMatrix( new THREE.Matrix4().translate(new THREE.Vector3(0, 0.01/2, 0)));    
+    
+    // XXX Rotating mesh instead, but means I can't combine all geometries into one mesh!
     //geo.applyMatrix( new THREE.Matrix4().rotateZ( - theta )); 
     //geo.applyMatrix( new THREE.Matrix4().rotateY( - phi ));    
   
@@ -107,8 +104,6 @@ OT.components.globe = function(container) {
     var mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: THREE.FaceColors, morphTargets: true }) );
     mesh.rotation.z = -theta;
     mesh.rotation.y = -phi;
-    //geo.applyMatrix( new THREE.Matrix4().rotateZ( - theta )); 
-    //geo.applyMatrix( new THREE.Matrix4().rotateY( - phi ));    
     
     setMagnitude(mesh, magnitude);
   
@@ -132,6 +127,10 @@ OT.components.globe = function(container) {
     scene.remove(mesh);
   }
 
+  function getPoint(id) {
+    points[id];
+  }
+  
   function updatePoint(id, magnitude) {
     var mesh = points[id];
     setMagnitude(mesh, magnitude);
@@ -154,7 +153,6 @@ OT.components.globe = function(container) {
 
   function resize() {
     renderer.setSize(window.innerWidth, window.innerHeight);    
-    //renderer.setSize($container.width(), $container.height());
   }
 
   function zoom(d) {
@@ -168,10 +166,10 @@ OT.components.globe = function(container) {
     camera.position.z = Math.cos(phi) * Math.cos(theta) * distance
     
     camera.lookAt(new THREE.Vector3(0,0,0));
- 
-    //var t = Date.now() * 0.001;
-    //uniforms.sunDirection.value.x = Math.sin(t);
-    //uniforms.sunDirection.value.y = Math.cos(t);
+  
+    //uniforms.sunDirection.value.x = Math.sin(-phi) * Math.cos(theta) * distance;
+    //uniforms.sunDirection.value.y = Math.sin(theta) * distance + cameraHeight;
+    //uniforms.sunDirection.value.z = Math.cos(-phi) * Math.cos(theta) * distance;
  
     renderer.render( scene, camera );
   }
@@ -182,6 +180,7 @@ OT.components.globe = function(container) {
   globe.addPoint = addPoint;
   globe.removePoint = removePoint;
   globe.updatePoint = updatePoint;
+  globe.getPoint = getPoint;
 
   globe.zoom = function(_) {
     if (!arguments.length) return distance;
