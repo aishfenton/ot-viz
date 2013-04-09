@@ -12,7 +12,7 @@ OT.components.globe = function(container) {
       lat = 0, lon = 0, phy = 0, theta = 0;
 
   var points = {},
-      pointSize = 0.005,
+      pointSize = 0.010,
       pointLength = 0.5;
 
   var halfX = $container.width() / 2,
@@ -36,7 +36,7 @@ OT.components.globe = function(container) {
     camera.position.z = distance;
     camera.position.y = cameraHeight;
 
-    scene.add( camera );
+    scene.add(camera);
 
     startTime = Date.now();
 
@@ -128,7 +128,7 @@ OT.components.globe = function(container) {
   }
 
   function getPoint(id) {
-    points[id];
+    return points[id];
   }
   
   function updatePoint(id, magnitude) {

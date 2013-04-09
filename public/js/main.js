@@ -113,7 +113,6 @@ OT.pages.main = function(_export) {
   function updateGlobe(points) {
     var pointArray = Object.values(points);
     var maxMag = pointArray.max('magnitude').magnitude;
-debugger;
     pointArray.forEach(function(d) { 
       if (globe.getPoint(d.gridId)) {
         globe.updatePoint(d.gridId, d.magnitude / maxMag);

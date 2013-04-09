@@ -18,6 +18,7 @@ get '/res-sim.json' do
 end
 
 get '/res/:region.json' do |region|
+  #headers("Access-Control-Allow-Origin" => "*")
   url = FEED_URL.gsub("{REGION}", region)
   URI.parse(url).read
 end
