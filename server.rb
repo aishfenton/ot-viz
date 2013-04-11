@@ -1,9 +1,4 @@
 require 'sinatra'
-require "sinatra/reloader" if development?
-require "./sim_res"
-require "json"
-require "sinatra/json"
-
 require 'open-uri'
 
 FEED_URL = "http://feeds-{REGION}.otcorp.opentable.com/reservations/created/"
@@ -12,10 +7,10 @@ get '/' do
   redirect '/index.html'
 end
 
-get '/res-sim.json' do
-  @sim_res ||= SimRes.new(1000, 0.1)
-  json(@sim_res.step)
-end
+#get '/res-sim.json' do
+  #@sim_res ||= SimRes.new(1000, 0.1)
+  #json(@sim_res.step)
+#end
 
 get '/res/:region.json' do |region|
   #headers("Access-Control-Allow-Origin" => "*")
